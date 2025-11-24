@@ -1,0 +1,1281 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Submit a Support Ticket</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --g-900:#0f3d15; --g-800:#1b5e20; --g-700:#2e7d32; --g-500:#43a047;
+      --g-300:#81c784; --g-200:#c8e6c9; --g-100:#e8f5e9; --g-050:#f9fdf9;
+    }
+    *{box-sizing:border-box}
+    body {
+      font-family: Montserrat, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      padding: 20px; max-width: 760px; margin: 0 auto;
+      background: var(--g-050); color: #1a1a1a;
+    }
+    h1 { color: var(--g-800); margin-bottom: .4em; }
+    p.intro { margin: 0 0 1.25em; color: var(--g-700); line-height: 1.5; }
+    label { display:block; margin: 12px 0 6px; font-weight: 600; color: var(--g-800); }
+    select, button, textarea, input[type="text"], input[type="url"], input[type="datetime-local"] {
+      width: 100%; padding: 10px; font-size: 15px; border-radius: 8px;
+      border: 1px solid var(--g-200); background:#fff;
+    }
+    select:focus, button:focus, textarea:focus, input:focus { outline: 2px solid var(--g-500); outline-offset: 1px; }
+    select[disabled], textarea[disabled], input[disabled] { background: #f3f7f3; color:#6b6b6b; }
+    .row { display:flex; gap:12px; margin-top:12px; }
+    .row > * { flex:1; min-width: 180px; }
+    button.primary {
+      background: var(--g-700); color: #fff; border: none; font-weight: 700; cursor: pointer; transition: background .18s;
+    }
+    button.primary:hover { background: var(--g-800); }
+    button.ghost {
+      background: #fff; color: var(--g-800); border: 1px solid var(--g-300); font-weight: 600; cursor: pointer;
+    }
+    button[disabled] { opacity:.6; cursor: not-allowed; }
+    .note { font-size: 13px; color: var(--g-700); margin-top: 6px; }
+
+    /* Info + error + success panels */
+    .status {
+      margin-top: 10px; padding: 10px; border-radius: 8px; border:1px solid var(--g-200); background: var(--g-100);
+      color: var(--g-800); font-size: 14px; display:none; white-space:pre-wrap;
+    }
+    .status.error { border-color:#f2b8b5; background:#fdecea; color:#b3261e; }
+    .success {
+      margin-top: 14px; padding: 12px; border-radius: 10px;
+      border:1px solid #a5d6a7; background:#e8f5e9; color:#1b5e20; display:none;
+    }
+    .success strong { display:block; margin-bottom: 6px; }
+
+    /* RAW webhook viewer (kept for debugging but hidden for users) */
+    .resp-wrap { margin-top: 14px; display:none !important; }
+    .resp-wrap h3 { margin: 0 0 6px; font-size: 16px; color: var(--g-800); }
+    pre#respRaw {
+      margin:0; background: #fff; padding:12px; border-radius:8px;
+      border:1px solid var(--g-200); white-space:pre-wrap; max-height: 360px; overflow:auto;
+    }
+    .resp-pretty { margin-top: 10px; }
+
+    .section { margin-top: 18px; padding-top: 6px; border-top: 1px dashed var(--g-200); }
+    .muted { color:#517a53; font-size:13px; margin-top:6px; }
+
+    /* Popover select */
+    .select-anchor { position: relative; }
+    .pop-wrap {
+      position: absolute;
+      z-index: 9999;
+      width: var(--pop-width, 100%);
+      background:#fff; border:1px solid var(--g-200);
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.15);
+      overflow: hidden;
+    }
+    .pop-search { width:100%; border:none; border-bottom:1px solid var(--g-200); padding:10px 12px; font-size:14px; outline:none; }
+    .pop-list { max-height: 260px; overflow:auto; padding:6px 0; }
+    .pop-item {
+      padding:8px 12px; cursor:pointer; font-size:14px; line-height:1.3;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .pop-item:hover, .pop-item[aria-selected="true"] { background: var(--g-100); }
+
+    /* RTE */
+    .rte-toolbar { display:flex; gap:6px; margin:6px 0 8px; flex-wrap: wrap; }
+    .rte-toolbar button {
+      display:inline-block; width:auto; min-width:34px; padding:4px 8px;
+      border:1px solid var(--g-300); border-radius:6px; background:#fff; cursor:pointer; font-size:14px; line-height:1.2;
+    }
+    .rte-toolbar button:hover { background: var(--g-100); }
+    .rte-toolbar button[aria-pressed="true"]{ background: var(--g-100); }
+    .rte-box {
+      min-height: 160px; padding:10px; border:1px solid var(--g-200); border-radius:8px; background:#fff;
+    }
+    .rte-box:focus { outline: 2px solid var(--g-500); }
+    .rte-box:empty:before { content: attr(data-placeholder); color: #7aa07b; }
+    .rte-box a { text-decoration: underline; color: var(--g-700); }
+
+    /* Attachments */
+    .dropzone {
+      border: 2px dashed var(--g-300);
+      border-radius: 10px; background: #fff; padding: 16px; text-align: center;
+      color: #517a53; cursor: pointer; user-select: none;
+    }
+    .dropzone.dragover { background: var(--g-100); border-color: var(--g-500); }
+    .img-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 10px; margin-top:10px; }
+    .img-card { border:1px solid var(--g-200); border-radius:10px; overflow:hidden; background:#fff; position:relative; }
+    .img-card img { width:100%; height:110px; object-fit:cover; display:block; cursor:pointer; }
+    .img-remove {
+      position:absolute; top:6px; right:6px; background:#fff; border:1px solid var(--g-300);
+      border-radius:8px; padding:2px 8px; font-size:12px; cursor:pointer;
+    }
+    .img-modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display:none; align-items: center; justify-content: center; z-index: 10000; }
+    .img-panel { background: #fff; border-radius: 12px; padding: 14px; max-width: 960px; width: calc(100% - 32px); max-height: 85vh; overflow: auto; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .modal-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .modal-top button { border:1px solid var(--g-300); background:#fff; border-radius:8px; padding:6px 10px; cursor:pointer; }
+    .img-viewer { display:flex; justify-content:center; margin-bottom:12px; }
+    .img-viewer img { max-width:100%; max-height:60vh; border-radius:10px; }
+
+    /* Subtask table */
+    table.subtask-table { width:100%; border-collapse: collapse; margin-top:8px; table-layout:fixed; }
+    .subtask-table th, .subtask-table td { border:1px solid var(--g-200); padding:8px; background:#fff; vertical-align: top; }
+    .subtask-table th { background: var(--g-100); text-align:left; color: var(--g-800); }
+    .subtask-table td:nth-child(1){ width:18%; }
+    .subtask-table td:nth-child(2){ width:36%; word-wrap:break-word; overflow-wrap: anywhere; }
+    .subtask-table td:nth-child(3){ width:22%; }
+    .subtask-table td:nth-child(4){ width:24%; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .time-input { width:100%; padding:8px; border:1px solid var(--g-200); border-radius:8px; }
+    .time-hint { font-size:12px; color:#517a53; margin-top:4px; }
+    .time-input.invalid { border-color:#f2b8b5; background:#fff8f8; }
+
+    /* ---- DELETE Subtask visuals ---- */
+    .subtask-table .delmark { display:inline-flex; align-items:center; gap:6px; font-weight:600; color:#b3261e; }
+    .subtask-table .delmark input { margin:0; }
+    .subtask-table tr.to-delete td { background:#fdecea !important; color:#b3261e; border-color:#f2b8b5; }
+    .subtask-table tr.to-delete select,
+    .subtask-table tr.to-delete input.timeEstimate { opacity:.5; pointer-events:none; }
+  </style>
+</head>
+<body>
+  <h1>Submit a Support Ticket</h1>
+  <p class="intro">
+    Fill out the form below. Your ticket will be created in ClickUp. After submit, everyone sees the exact webhook response here, including the task link.
+  </p>
+
+  <form id="form" novalidate>
+    <label for="submitter">Who is submitting this ticket? *</label>
+    <div class="select-anchor">
+      <select id="submitter" name="submitter" required disabled data-searchable>
+        <option value="" selected>Click “Fetch new data” to load submitters…</option>
+      </select>
+    </div>
+
+    <div class="section">
+      <label for="team">Which team is this for? *</label>
+      <div class="select-anchor">
+        <select id="team" name="team" required data-searchable>
+          <option value="" selected>Select a team…</option>
+          <option>Ads</option>
+          <option>Client Team</option>
+          <option>Operations</option>
+          <option>Sales & Marketing</option>
+          <option>SEO</option>
+          <option>Bilingual SEO</option>
+          <option>Content</option>
+          <option>Web</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section">
+      <label for="client">Which client is this for? *</label>
+      <div class="select-anchor">
+        <select id="client" name="client" required disabled data-searchable>
+          <option value="" selected>Click “Fetch new data” to load clients…</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section">
+      <label for="clientUrl">Client Website</label>
+      <input id="clientUrl" type="url" placeholder="Auto-filled after you choose a client…" disabled readonly />
+      <div class="muted" id="clientUrlLinkWrap" style="display:none;">
+        <a id="clientUrlLink" href="#" target="_blank" rel="noopener">Open website</a>
+      </div>
+    </div>
+
+    <div class="section">
+      <label for="template">What type of ticket is this? *</label>
+      <div class="select-anchor">
+        <select id="template" name="template" required disabled data-searchable>
+          <option value="" selected>Click “Fetch new data” to load templates…</option>
+        </select>
+      </div>
+      <div class="muted">Selecting a template will auto-fill the description and due date/time.</div>
+    </div>
+
+    <!-- Task Title -->
+    <div class="section">
+      <label for="taskTitle">Task Title</label>
+      <input id="taskTitle" name="taskTitle" type="text" placeholder="Auto-filled from template…" />
+      <div class="muted">This title is auto-filled from the selected template. You can edit it if needed.</div>
+    </div>
+
+    <div class="section">
+      <label for="dueDate">Due Date & Time</label>
+      <input id="dueDate" type="datetime-local" />
+      <div class="muted">Absolute (YYYY-MM-DD HH:MM) or relative like +8h, 2d 4h 30m.</div>
+    </div>
+
+    <!-- DESCRIPTION -->
+    <div class="section">
+      <label for="description">Description</label>
+
+      <div class="rte-toolbar" id="rteToolbar">
+        <button type="button" data-cmd="bold"><strong>B</strong></button>
+        <button type="button" data-cmd="italic"><em>I</em></button>
+        <button type="button" data-cmd="underline"><u>U</u></button>
+        <button type="button" data-cmd="insertUnorderedList">• Bullets</button>
+        <button type="button" data-cmd="insertOrderedList">1. Numbers</button>
+        <button type="button" data-cmd="formatBlock" data-value="H3">H3</button>
+        <button type="button" data-cmd="formatBlock" data-value="BLOCKQUOTE">Quote</button>
+        <button type="button" data-action="code">Code</button>
+        <button type="button" data-action="link">Link</button>
+        <button type="button" data-action="clear">Clear</button>
+      </div>
+
+      <div id="descriptionEditor" class="rte-box" contenteditable="true" data-placeholder="Template description will appear here after you choose a template…"></div>
+      <textarea id="description" name="description" style="display:none;"></textarea>
+
+      <div class="muted">Images belong in Attachments below.</div>
+    </div>
+
+    <!-- Attachments -->
+    <div class="section">
+      <label>Attachments</label>
+      <div id="dropzone" class="dropzone" tabindex="0">Click to upload, or drag & drop / paste images here</div>
+      <div class="img-grid" id="attachGrid"></div>
+      <input type="file" id="fileImageInput" accept="image/*" multiple style="display:none" />
+      <div class="row">
+        <button type="button" id="btnUploadImage" class="ghost">Upload Image</button>
+        <button type="button" id="btnViewAttachments" class="ghost">View Images</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <button type="button" id="btnFetch" class="ghost">Fetch new data</button>
+      <button type="submit" class="primary" id="btnSubmit" disabled>Submit Ticket</button>
+    </div>
+
+    <div id="status" class="status"></div>
+    <div id="success" class="success" role="status" aria-live="polite"></div>
+    <div class="note">If your n8n workflow is OFF, use /webhook-test/ endpoints.</div>
+
+    <!-- Subtask Assignee -->
+    <div id="assigneeSection" class="section" style="display:none;">
+      <h3 style="margin:0 0 6px; color:var(--g-800);">Subtask Assignee</h3>
+      <div class="muted">Pick an assignee and estimate for each subtask, then click <em>Assign</em>. (Client, Task Type, and Link are captured but hidden.)</div>
+      <div id="assigneeTableWrap"></div>
+      <div class="row" style="margin-top:12px;">
+        <button type="button" id="btnAssign" class="primary">Assign</button>
+        <button type="button" id="btnDelete" class="ghost" disabled>Delete</button>
+      </div>
+    </div>
+
+    <!-- Clean assignment/create result (ONLY the data returned by Respond to Webhook) -->
+    <div id="assignResult" class="success" style="display:none;"></div>
+  </form>
+
+  <!-- Raw webhook viewer (hidden for users; kept for debugging) -->
+  <div class="resp-wrap" id="respWrap">
+    <h3>Webhook response</h3>
+    <pre id="respRaw"></pre>
+    <div id="respPretty" class="status resp-pretty"></div>
+  </div>
+
+  <!-- Image gallery modal -->
+  <div id="imgModal" class="img-modal" aria-hidden="true">
+    <div class="img-panel" role="dialog" aria-modal="true" aria-label="Images in attachments">
+      <div class="modal-top">
+        <strong>Images in Attachments</strong>
+        <button type="button" id="btnCloseModal">Close</button>
+      </div>
+      <div class="img-viewer" id="imgViewer"></div>
+      <div id="imgGridModal" class="img-grid"></div>
+    </div>
+  </div>
+
+  <script>
+    /* Endpoints */
+    const CHOICES_URL          = "https://n8n-14lp.onrender.com/webhook/ticket-choices"; // GET
+    const TICKET_WEBHOOK_URL   = "https://n8n-14lp.onrender.com/webhook/ticker-maker";   // POST
+    const SUBTASK_WEBHOOK_URL  = "https://n8n-14lp.onrender.com/webhook/ticker-subtask"; // POST on Assign
+    const DELETE_WEBHOOK_URL   = "https://n8n-14lp.onrender.com/webhook/delete-subtask"; // POST on Delete
+
+    const SHOW_DEBUG = false;
+
+    const $ = s => document.querySelector(s);
+    const byId = id => document.getElementById(id);
+    const show = el => { el.style.display = "block"; };
+    const hide = el => { el.style.display = "none"; };
+
+    function escapeHtml(str){
+      return String(str)
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
+    function linkify(str){
+      return String(str).replace(/(https?:\/\/[^\s"']+)/g, m => `<a href="${m}" target="_blank" rel="noopener">${m}</a>`);
+    }
+
+    function renderPrettyResponse(bodyText, statusCode){
+      const box = byId("respPretty");
+      let html = `<strong>Response ${statusCode}</strong>`;
+      try{
+        const obj = JSON.parse(bodyText);
+        const rows = Object.entries(obj).map(([k,v]) => {
+          const value = typeof v === "string" ? linkify(escapeHtml(v)) : escapeHtml(JSON.stringify(v, null, 2));
+          return `<li><strong>${escapeHtml(k)}:</strong> ${value}</li>`;
+        }).join("");
+        html += `<ul>${rows}</ul>`;
+      }catch(_){
+        html += `<pre style="white-space:pre-wrap;margin:6px 0 0;">${linkify(escapeHtml(bodyText))}</pre>`;
+      }
+      box.innerHTML = html;
+      if (SHOW_DEBUG) { show(box); show(byId("respWrap")); }
+    }
+
+    function setStatus(text, isError=false){
+      const el = byId("status");
+      if(!text){ hide(el); el.textContent=""; el.classList.remove("error"); return; }
+      el.textContent = text;
+      el.classList.toggle("error", !!isError);
+      show(el);
+    }
+
+    function setSuccess(text){
+      const el = byId("success");
+      el.innerHTML = `<strong>${escapeHtml(text || "Task created successfully.")}</strong>`;
+      show(el);
+    }
+
+    function enableForm(enabled){
+      byId("submitter").disabled = !enabled;
+      byId("client").disabled = !enabled;
+      byId("template").disabled = !enabled;
+      byId("btnSubmit").disabled = !enabled;
+      byId("dueDate").disabled = !enabled ? true : false;
+      byId("clientUrl").disabled = !enabled;
+    }
+
+    function option(valObj, labelText){
+      const opt = document.createElement("option");
+      opt.value = JSON.stringify(valObj);
+      opt.textContent = labelText;
+      return opt;
+    }
+
+    /* ---------- SELECT FILL ---------- */
+    function fillSubmitter(items){
+      const el = byId("submitter");
+      el.innerHTML = "";
+      el.appendChild(new Option("Select a submitter…","",true,true));
+      (items || []).forEach(item => {
+        el.appendChild(option(
+          { id: String(item.value || ""), name: String(item.label || "") },
+          item.label || ""
+        ));
+      });
+      enhanceSelect(el);
+    }
+
+    function fillClient(items){
+      const el = byId("client");
+      el.innerHTML = "";
+      el.appendChild(new Option("Select a client…","",true,true));
+      (items || []).forEach(item => {
+        el.appendChild(option(
+          {
+            name:     String(item.label || item["Matching True Name"] || ""),
+            listId:   String(item.value || item.listId || item["List ID"] || ""),
+            folderId: String(item.folderId || item["Folder ID"] || ""),
+            ticketId: String(item.ticketId || item["Ticket ID"] || ""),
+            url:      String(item.url || item.URL || item["URL"] || item.website || item.Website || item.link || item.Link || "")
+          },
+          item.label || item["Matching True Name"] || ""
+        ));
+      });
+      enhanceSelect(el);
+      updateClientWebsiteFromSelect();
+    }
+
+    function fillTemplates(items){
+      const el = byId("template");
+      el.innerHTML = "";
+      el.appendChild(new Option("Select a template…","",true,true));
+      (items || []).forEach(item => {
+        el.appendChild(option(
+          {
+            id:   String(item.value || item.id || item["ID"] || ""),
+            name: String(item.label || item.name || item["Matched Template Name"] || ""),
+            data: String(item.data  || item["Data"] || ""),
+            due:  String(item.due   || item.dueDates || item["Due Dates"] || item["Due Date"] || "")
+          },
+          item.label || item.name || item["Matched Template Name"] || ""
+        ));
+      });
+      enhanceSelect(el);
+      handleTemplateChange();
+    }
+
+    function dedupeBy(arr, keyFn){
+      const seen = new Set();
+      return (arr || []).filter(x => {
+        const k = keyFn(x);
+        if(!k || seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    }
+
+    /* ---------- RTE ---------- */
+    const editor = byId("descriptionEditor");
+    const toolbar = byId("rteToolbar");
+    const ALLOWED_TAGS = new Set(["P","BR","STRONG","B","EM","I","U","UL","OL","LI","A","H1","H2","H3","H4","H5","H6","BLOCKQUOTE","PRE","CODE"]);
+    const ALLOWED_ATTRS = { A: new Set(["href","target","rel"]) };
+
+    function sanitizeUrl(u){ try{ const url=new URL(u); if(/^https?:$/.test(url.protocol)) return url.toString(); }catch(_){ } return ""; }
+    function sanitizeHtml(html){
+      const tpl = document.createElement("template"); tpl.innerHTML = html;
+      (function walk(node){
+        const kids = Array.from(node.childNodes);
+        for(const n of kids){
+          if(n.nodeType===1){
+            if(!ALLOWED_TAGS.has(n.tagName)){ while(n.firstChild) node.insertBefore(n.firstChild,n); node.removeChild(n); continue; }
+            [...n.attributes].forEach(a=>{ const ok=(ALLOWED_ATTRS[n.tagName]&&ALLOWED_ATTRS[n.tagName].has(a.name.toLowerCase())); if(!ok) n.removeAttribute(a.name); });
+            if(n.tagName==="A"){ const clean=sanitizeUrl(n.getAttribute("href")||""); if(!clean){ n.replaceWith(...n.childNodes); continue; } n.setAttribute("href",clean); n.setAttribute("target","_blank"); n.setAttribute("rel","noopener"); }
+            walk(n);
+          }else if(n.nodeType===8){ node.removeChild(n); }
+        }
+      })(tpl.content);
+      tpl.content.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h=>{ const p=document.createElement('p'); const b=document.createElement('b'); b.textContent=h.textContent; p.appendChild(b); h.replaceWith(p); });
+      return tpl.innerHTML;
+    }
+
+    toolbar.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button"); if(!btn) return;
+      const cmd = btn.dataset.cmd; const val = btn.dataset.value || null; const action = btn.dataset.action;
+      editor.focus();
+      if(cmd){
+        if(cmd === "formatBlock" && val){ const tag = val === "H3" ? "<h3>" : val; document.execCommand("formatBlock", false, tag); }
+        else document.execCommand(cmd, false, val);
+        return;
+      }
+      if(action === "link"){
+        const href = prompt("Enter URL to link:", "https://"); const clean = sanitizeUrl(href || ""); if(!clean) return;
+        document.execCommand("createLink", false, clean);
+        const sel = window.getSelection(); if(sel && sel.anchorNode){
+          const a = (sel.anchorNode.parentElement && sel.anchorNode.parentElement.closest("a"));
+          if(a){ a.setAttribute("target","_blank"); a.setAttribute("rel","noopener"); }
+        }
+        return;
+      }
+      if(action === "code"){
+        document.execCommand("formatBlock", false, "PRE");
+        const pre = editor.querySelector("pre");
+        if(pre && !pre.querySelector("code")){
+          const c=document.createElement("code");
+          c.innerHTML=pre.innerHTML; pre.replaceChildren(c);
+        }
+        return;
+      }
+      if(action === "clear"){
+        const plain = editor.textContent || "";
+        editor.innerHTML = sanitizeHtml(plain ? `<p>${escapeHtml(plain).replace(/\n+/g,"</p><p>")}</p>` : "");
+        return;
+      }
+    });
+
+    editor.addEventListener("paste", (e)=>{
+      e.preventDefault();
+      const html = e.clipboardData.getData("text/html");
+      const text = e.clipboardData.getData("text/plain");
+      const safe = sanitizeHtml(html || (text ? `<p>${escapeHtml(text).replace(/\n+/g,"</p><p>")}</p>` : ""));
+      document.execCommand("insertHTML", false, safe);
+    });
+
+    /* ---------- Attachments (short) ---------- */
+    const attachments = [];
+    function addAttachmentFile(file){
+      if(!file || !file.type.startsWith("image/")) return;
+      const reader = new FileReader();
+      reader.onload = () => { attachments.push({ name:file.name, type:file.type, size:file.size, dataUrl:reader.result }); renderAttachmentsGrid(); };
+      reader.readAsDataURL(file);
+    }
+    function renderAttachmentsGrid(){
+      const grid = byId("attachGrid"); grid.innerHTML = "";
+      attachments.forEach((a, idx) => {
+        const card = document.createElement("div"); card.className = "img-card";
+        const img = document.createElement("img"); img.src = a.dataUrl; img.alt = a.name || "attachment";
+        img.addEventListener("click", () => openAttachmentGallery(idx));
+        const remove = document.createElement("button"); remove.className = "img-remove"; remove.type = "button"; remove.textContent = "Remove";
+        remove.addEventListener("click", (e) => { e.stopPropagation(); attachments.splice(idx,1); renderAttachmentsGrid(); });
+        card.appendChild(img); card.appendChild(remove); grid.appendChild(card);
+      });
+    }
+    const dropzone = byId("dropzone");
+    dropzone.addEventListener("click", () => byId("fileImageInput").click());
+    dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("dragover"); });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+    dropzone.addEventListener("drop", (e) => { e.preventDefault(); dropzone.classList.remove("dragover"); Array.from(e.dataTransfer.files||[]).forEach(addAttachmentFile); });
+    dropzone.addEventListener("paste", (e) => {
+      const dt = e.clipboardData; if(!dt) return;
+      const fileItem = Array.from(dt.items||[]).find(i => i.kind === "file" && i.type.startsWith("image/"));
+      if(fileItem){ e.preventDefault(); addAttachmentFile(fileItem.getAsFile()); }
+    });
+    byId("fileImageInput").addEventListener("change", (e) => { Array.from(e.target.files||[]).forEach(addAttachmentFile); e.target.value = ""; });
+    byId("btnUploadImage").addEventListener("click", () => byId("fileImageInput").click());
+    byId("btnViewAttachments").addEventListener("click", () => openAttachmentGallery(0));
+    function openAttachmentGallery(startIndex=0){
+      const viewer = byId("imgViewer"); const grid = byId("imgGridModal"); viewer.innerHTML = ""; grid.innerHTML = "";
+      if(attachments.length === 0){
+        viewer.innerHTML = "<div class='muted'>No images in attachments.</div>";
+      }else{
+        const big = document.createElement("img");
+        big.src = attachments[Math.max(0, Math.min(startIndex, attachments.length-1))].dataUrl; viewer.appendChild(big);
+        attachments.forEach((a) => {
+          const card=document.createElement("div"); card.className="img-card";
+          const thumb=document.createElement("img"); thumb.src=a.dataUrl; thumb.addEventListener("click", () => { big.src = a.dataUrl; });
+          card.appendChild(thumb); grid.appendChild(card);
+        });
+      }
+      const modal = byId("imgModal"); modal.style.display="flex"; modal.setAttribute("aria-hidden","false");
+    }
+    byId("btnCloseModal").addEventListener("click", () => closeImageGallery());
+    function closeImageGallery(){ const modal = byId("imgModal"); modal.style.display="none"; modal.setAttribute("aria-hidden","true"); }
+
+    /* ---------- Client website helpers ---------- */
+    function setClientWebsite(url){
+      const input = byId("clientUrl"); const wrap = byId("clientUrlLinkWrap"); const link = byId("clientUrlLink");
+      input.value = url || ""; if(url){ show(wrap); link.href = url; } else { hide(wrap); }
+    }
+    function updateClientWebsiteFromSelect(){
+      const raw = byId("client").value; if(!raw){ setClientWebsite(""); return; }
+      try{ const c = JSON.parse(raw); setClientWebsite(c.url || ""); }catch(_){ setClientWebsite(""); }
+    }
+
+    /* ---------- Date helpers ---------- */
+    function two(n){ return String(n).padStart(2,"0"); }
+    function toLocalDatetimeValue(date){
+      const d=new Date(date.getTime()-date.getTimezoneOffset()*60000);
+      return `${d.getUTCFullYear()}-${two(d.getUTCMonth()+1)}-${two(d.getUTCDate())}T${two(d.getUTCHours())}:${two(d.getUTCMinutes())}`;
+    }
+    function parseRelativeSpec(s){
+      const m=s.trim().match(/^(?:in\s*)?([+-]?\d[\d\s\w:+-]*)$/i); if(!m) return null;
+      const partRe=/([+-]?\d+)\s*(w|week|weeks|d|day|days|h|hr|hrs|hour|hours|m|min|mins|minute|minutes)/gi;
+      let totalMinutes=0, found=false, p;
+      while((p=partRe.exec(s))!==null){ found=true; const val=parseInt(p[1],10); const unit=p[2].toLowerCase(); let mult=1;
+        if(unit.startsWith("w")) mult=7*24*60; else if(unit.startsWith("d")) mult=24*60; else if(unit.startsWith("h")) mult=60; else mult=1;
+        totalMinutes += val*mult;
+      }
+      if(!found){ const bare=s.trim().match(/^([+-]?\d+)$/); if(!bare) return null; totalMinutes = parseInt(bare[1],10)*60; }
+      return new Date(Date.now()+totalMinutes*60000);
+    }
+    function setAutoDueDate(spec){
+      const input=byId("dueDate"); if(!spec){ input.value=""; return; }
+      const s=String(spec).trim();
+      const absMatch=s.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}):?(\d{2}))?$/);
+      if(absMatch){ const [_,d,hh="00",mm="00"]=absMatch; input.value=`${d}T${hh}:${mm}`; return; }
+      const native=new Date(s); if(!isNaN(native.getTime())){ input.value=toLocalDatetimeValue(native); return; }
+      const rel=parseRelativeSpec(s); if(rel){ input.value=toLocalDatetimeValue(rel); return; }
+      input.value="";
+    }
+
+    /* ---------- Searchable select popover ---------- */
+    function normalizeText(s){ return String(s||"").toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu,""); }
+    function enhanceSelect(selectEl){
+      if(selectEl.dataset.enhanced) return;
+      selectEl.dataset.enhanced="1";
+      const anchor=selectEl.closest(".select-anchor")||selectEl.parentElement; anchor.style.position="relative";
+      let pop=null, search=null, list=null; let items=[];
+      function buildItems(){ const opts=Array.from(selectEl.options); items=opts.slice(1).map(o=>({label:o.textContent||"", value:o.value})); }
+      function openPopover(){
+        closePopover(); buildItems();
+        pop=document.createElement("div"); pop.className="pop-wrap";
+        pop.style.setProperty('--pop-width', `${selectEl.offsetWidth}px`); pop.style.top=(selectEl.offsetHeight+6)+"px"; pop.style.left="0";
+        search=document.createElement("input"); search.type="text"; search.className="pop-search"; search.placeholder="Type to search…";
+        list=document.createElement("div"); list.className="pop-list";
+        pop.appendChild(search); pop.appendChild(list); anchor.appendChild(pop);
+        renderList(items); search.focus();
+        search.addEventListener("input", handleFilter); search.addEventListener("keydown", handleKeys); list.addEventListener("click", handleClick);
+        document.addEventListener("mousedown", outsideClose, true); window.addEventListener("resize", closePopover);
+      }
+      function closePopover(){ if(pop){ document.removeEventListener("mousedown", outsideClose, true); window.removeEventListener("resize", closePopover); pop.remove(); } pop=search=list=null; }
+      function outsideClose(e){ if(pop && !pop.contains(e.target) && e.target!==selectEl) closePopover(); }
+      function handleClick(e){ const item=e.target.closest(".pop-item"); if(!item) return; selectEl.value=item.dataset.value; selectEl.dispatchEvent(new Event("change",{bubbles:true})); closePopover(); selectEl.focus(); }
+      function handleKeys(e){
+        const focusable=Array.from(list.querySelectorAll(".pop-item"));
+        const current=list.querySelector('.pop-item[aria-selected="true"]'); let idx=current?focusable.indexOf(current):-1;
+        if(e.key==="ArrowDown"){ e.preventDefault(); idx=Math.min(idx+1, focusable.length-1); setActive(focusable[idx]); }
+        else if(e.key==="ArrowUp"){ e.preventDefault(); idx=Math.max(idx-1, 0); setActive(focusable[idx]); }
+        else if(e.key==="Enter"){ e.preventDefault(); if(current){ selectEl.value=current.dataset.value; selectEl.dispatchEvent(new Event("change",{bubbles:true})); closePopover(); selectEl.focus(); } }
+        else if(e.key==="Escape"){ e.preventDefault(); closePopover(); selectEl.focus(); }
+      }
+      function setActive(el){ list.querySelectorAll(".pop-item[aria-selected]").forEach(x=>x.removeAttribute("aria-selected")); if(el){ el.setAttribute("aria-selected","true"); el.scrollIntoView({block:"nearest"}); } }
+      function handleFilter(){ const q=normalizeText(search.value); const filtered=q?items.filter(i=>normalizeText(i.label).includes(q)):items.slice(); renderList(filtered); }
+      function renderList(arr){
+        list.innerHTML=""; if(arr.length===0){ const empty=document.createElement("div"); empty.className="pop-item"; empty.style.cursor="default"; empty.textContent="No matches"; list.appendChild(empty); return; }
+        arr.forEach((it,i)=>{ const div=document.createElement("div"); div.className="pop-item"; div.textContent=it.label; div.dataset.value=it.value; if(i===0) div.setAttribute("aria-selected","true"); list.appendChild(div); });
+      }
+      selectEl.addEventListener("mousedown", (e)=>{ if(selectEl.disabled) return; e.preventDefault(); if(pop) closePopover(); else openPopover(); });
+      selectEl.addEventListener("keydown", (e)=>{ if(selectEl.disabled) return; if(e.key==="ArrowDown"||e.key==="Enter"||e.key===" "){ e.preventDefault(); if(!pop) openPopover(); } });
+    }
+
+    /* ---------- FETCH CHOICES ---------- */
+    async function fetchChoices(){
+      const url = CHOICES_URL + "?t=" + Date.now();
+      let res, text;
+      try { res = await fetch(url, { method:"GET", cache:"no-store" }); }
+      catch (netErr) { throw new Error("Network error or CORS. " + String(netErr)); }
+      try { text = await res.text(); }
+      catch { throw new Error(`HTTP ${res?.status || "?"} - failed reading response body.`); }
+      if (!res.ok) throw new Error(`HTTP ${res.status} from CHOICES_URL.\nBody:\n${text}`);
+      let data; try { data = JSON.parse(text); } catch { throw new Error(`Invalid JSON from CHOICES_URL.\nBody was:\n${text}`); }
+      return data;
+    }
+
+    async function handleFetchNew(){
+      try{
+        setStatus("Fetching latest data…");
+        hide(byId("success")); hide(byId("respPretty")); hide(byId("respWrap")); hide(byId("assignResult"));
+        enableForm(false); hideAssigneeSection();
+        const data = await fetchChoices();
+
+        const submitters = Array.isArray(data.submitters) ? data.submitters.map(s => ({ label:String(s.label||"").trim(), value:String(s.value||"").trim() })) : [];
+        const clients = Array.isArray(data.clients) ? data.clients.map(c => ({
+          label: String(c.label || c["Matching True Name"] || "").trim(),
+          value: String(c.value || c.listId || c["List ID"] || "").trim(),
+          folderId: String(c.folderId || c["Folder ID"] || "").trim(),
+          ticketId: String(c.ticketId || c["Ticket ID"] || "").trim(),
+          url: String(c.url || c.URL || c["URL"] || c.website || c.Website || c.link || c.Link || "").trim()
+        })) : [];
+        const templates = Array.isArray(data.templates) ? data.templates.map(t => ({
+          label: String(t.label || t.name || t["Matched Template Name"] || "").trim(),
+          value: String(t.value || t.id || t["ID"] || "").trim(),
+          data:  String(t.data  || t["Data"] || "").trim(),
+          due:   String(t.due   || t.dueDates || t["Due Dates"] || t["Due Date"] || "").trim()
+        })) : [];
+
+        fillSubmitter(dedupeBy(submitters, x => x.value));
+        fillClient   (dedupeBy(clients,    x => x.value));
+        fillTemplates(dedupeBy(templates,  x => x.value));
+
+        const ok = submitters.length && clients.length && templates.length;
+        enableForm(!!ok);
+        setStatus(ok ? "All data is added." : "Fetched, but no rows found. Add rows in the sheet and try again.");
+
+        byId("client").addEventListener("change", updateClientWebsiteFromSelect);
+        byId("template").addEventListener("change", handleTemplateChange);
+
+        setClientWebsite(""); byId("dueDate").value = "";
+      }catch(e){
+        setStatus("Couldn't fetch new data.\n" + String(e.message || e), true);
+        const raw = byId("respRaw"); raw.textContent = String(e.stack || e.message || e);
+        if (SHOW_DEBUG) show(byId("respWrap"));
+      }
+    }
+
+    function handleTemplateChange(){
+      const raw = byId("template").value;
+      if(!raw){ editor.innerHTML = ""; byId("dueDate").value = ""; (byId("taskTitle")||{}).value = ""; return; }
+      try{
+        const t = JSON.parse(raw);
+        const isHtml = /<\/?[a-z][\s\S]*>/i.test(t.data || "");
+        const htmlRaw = isHtml ? t.data : (t.data || "").split("\n").map(line => `<p>${escapeHtml(line)}</p>`).join("");
+        editor.innerHTML = sanitizeHtml(htmlRaw); setAutoDueDate(t.due || "");
+        const tt = byId("taskTitle"); if (tt) tt.value = (t.name || "").toString().trim();
+      }catch(_){ editor.innerHTML = ""; byId("dueDate").value = ""; (byId("taskTitle")||{}).value = ""; }
+    }
+
+    /* ---------- SUBTASK SECTION ---------- */
+    let latestSubtasks = [];
+    let lastHiddenContext = { client:"", taskType:"", link:"" };
+    let lastWebhookObj = null;    // full parsed last response (if JSON)
+    let lastWebhookText = "";     // raw text of last response
+
+    function submitterOptions(){
+      const sel = byId("submitter");
+      return Array.from(sel.options).slice(1).map(o => ({ label:o.textContent || "", value:o.value }));
+    }
+
+    function buildAssigneeRow(row, idx){
+      const opts = submitterOptions();
+      const selId = `assigneeSel_${idx}`;
+      const timeId = `timeEstimate_${idx}`;
+      const rendered = [
+        `<option value="" selected>Select a team member…</option>`,
+        ...opts.map(o => `<option value='${escapeHtml(o.value)}'>${escapeHtml(o.label)}</option>`)
+      ].join("");
+      return `
+        <tr data-id="${escapeHtml(row.id)}" data-name="${escapeHtml(row.name)}"
+            data-client="${escapeHtml(lastHiddenContext.client)}"
+            data-tasktype="${escapeHtml(lastHiddenContext.taskType)}"
+            data-link="${escapeHtml(lastHiddenContext.link)}">
+          <td class="mono">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <label class="delmark" title="Mark for deletion">
+                <input type="checkbox" class="deleteChk" />
+                <span>Delete</span>
+              </label>
+              <code>${escapeHtml(row.id)}</code>
+            </div>
+          </td>
+          <td>${escapeHtml(row.name)}</td>
+          <td>
+            <div class="select-anchor">
+              <select id="${selId}" class="assigneeSel" data-searchable>
+                ${rendered}
+              </select>
+            </div>
+          </td>
+          <td>
+            <input id="${timeId}" class="timeEstimate time-input" type="text"
+                   placeholder="e.g., 1h 30m, 1:30, 90m, 1.5h" aria-label="Time estimate"/>
+            <div class="time-hint"></div>
+          </td>
+        </tr>`;
+    }
+
+    function renderAssigneeSection(rows){
+      latestSubtasks = rows.slice();
+      const wrap = byId("assigneeTableWrap");
+      if (!rows.length){ wrap.innerHTML = ""; hideAssigneeSection(); return; }
+      const thead = `
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Subtask</th>
+            <th>Assign</th>
+            <th>Time estimate</th>
+          </tr>
+        </thead>`;
+      const tbody = `<tbody>${rows.map((r,i)=>buildAssigneeRow(r,i)).join("")}</tbody>`;
+      wrap.innerHTML = `<table class="subtask-table">${thead}${tbody}</table>`;
+      show(byId("assigneeSection"));
+      wrap.querySelectorAll("select.assigneeSel").forEach(enhanceSelect);
+      attachTimeInputHelpers();
+      attachDeleteCheckboxHandlers();
+      updateButtonsState();
+      wrap.addEventListener('change', (e)=>{
+        if(e.target.closest('.assigneeSel') || e.target.closest('.deleteChk')) updateButtonsState();
+      });
+      wrap.addEventListener('input', (e)=>{
+        if(e.target.closest('.timeEstimate')) updateButtonsState();
+      });
+    }
+
+    function hideAssigneeSection(){
+      hide(byId("assigneeSection"));
+      byId("assigneeTableWrap").innerHTML = "";
+    }
+
+    function extractSubtasksFromResponse(obj){
+      const out = [];
+      const pushIf = (id, name) => { if(id && name) out.push({ id:String(id), name:String(name) }); };
+
+      if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+        const id  = obj.ID ?? obj.Id ?? obj.id ?? obj.task_id ?? obj.short_id ?? obj.value;
+        const name = obj.Subtask ?? obj.subtask ?? obj.name ?? obj.title ?? obj.text ?? obj.content ?? obj.label ?? obj.Name;
+        if (id && name) pushIf(id, name);
+      }
+
+      const tryArr = (arr) => {
+        if (!Array.isArray(arr)) return;
+        arr.forEach(it => {
+          const id = it?.id ?? it?.ID ?? it?.task_id ?? it?.short_id ?? it?.shortId ?? it?.subtaskId ?? it?.SubtaskID ?? it?.value ?? it?.Id;
+          const name = it?.name ?? it?.title ?? it?.text ?? it?.subtask ?? it?.Subtask ?? it?.content ?? it?.label ?? it?.Name;
+          pushIf(id, name);
+        });
+      };
+
+      tryArr(obj?.subtasks);
+      tryArr(obj?.subTasks);
+      tryArr(obj?.created_subtasks);
+      tryArr(obj?.data);
+      tryArr(obj?.items);
+      tryArr(obj?.rows);
+      tryArr(obj?.list);
+      tryArr(obj?.children);
+      tryArr(obj?.result?.subtasks);
+      if (Array.isArray(obj)) tryArr(obj);
+
+      const seen = new Set();
+      return out.filter(r => r.id && !seen.has(r.id) && seen.add(r.id));
+    }
+
+    /* ---------- Time estimate parsing + helpers ---------- */
+    function parseTimeEstimate(s){
+      if(s == null) return { minutes:null, normalized:null };
+      let raw = String(s).trim().toLowerCase();
+      if(!raw) return { minutes:null, normalized:null };
+
+      const colon = raw.match(/^(-?\d+)\s*:\s*(\d{1,2})$/);
+      if(colon){
+        const h = parseInt(colon[1],10);
+        const m = parseInt(colon[2],10);
+        if(Number.isFinite(h) && Number.isFinite(m)){
+          const mins = h*60 + m;
+          return { minutes: mins, normalized: formatMinutes(mins) };
+        }
+      }
+
+      raw = raw
+        .replace(/,/g,' ')
+        .replace(/\band\b/g,' ')
+        .replace(/hours?/g,'h')
+        .replace(/hrs?/g,'h')
+        .replace(/minutes?/g,'m')
+        .replace(/mins?/g,'m')
+        .replace(/\s+/g,'');
+
+      let minutes = 0;
+      let found = false;
+
+      const h = raw.match(/(-?\d+(?:\.\d+)?)h/);
+      if(h){
+        const hours = parseFloat(h[1]);
+        if(Number.isFinite(hours)){ minutes += Math.round(hours*60); found = true; }
+      }
+      const m = raw.match(/(-?\d+)m/);
+      if(m){
+        const mins = parseInt(m[1],10);
+        if(Number.isFinite(mins)){ minutes += mins; found = true; }
+      }
+
+      if(!found){
+        if(/^-?\d+(\.\d+)?$/.test(raw)){
+          if(raw.includes('.')){
+            const hours = parseFloat(raw);
+            if(Number.isFinite(hours)){ minutes = Math.round(hours*60); found = true; }
+          }else{
+            const mins = parseInt(raw,10);
+            if(Number.isFinite(mins)){ minutes = mins; found = true; }
+          }
+        }else{
+          return { minutes:null, normalized:null };
+        }
+      }
+
+      if(!Number.isFinite(minutes) || minutes < 0) return { minutes:null, normalized:null };
+      return { minutes, normalized: formatMinutes(minutes) };
+    }
+
+    function formatMinutes(mins){
+      const h = Math.floor(mins/60);
+      const m = mins % 60;
+      if(h && m) return `${h}h ${m}m`;
+      if(h) return `${h}h`;
+      return `${m}m`;
+    }
+
+    function attachTimeInputHelpers(){
+      document.querySelectorAll('#assigneeTableWrap .timeEstimate').forEach(input => {
+        const hint = input.parentElement.querySelector('.time-hint');
+        const update = () => {
+          const { minutes, normalized } = parseTimeEstimate(input.value);
+          if(minutes != null){
+            hint.textContent = `Parsed: ${normalized} (${minutes}m)`;
+            input.classList.remove('invalid');
+          }else{
+            hint.textContent = `Enter like 1h 30m, 1:30, 90m, 1.5h, or "2 hours 15 minutes"`;
+            if(input.value.trim()) input.classList.add('invalid'); else input.classList.remove('invalid');
+          }
+        };
+        input.addEventListener('input', update);
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        });
+        input.addEventListener('blur', () => {
+          const { minutes, normalized } = parseTimeEstimate(input.value);
+          if(minutes != null){ input.value = normalized; }
+          update();
+        });
+        update();
+      });
+    }
+
+    /* ---- DELETE checkbox handlers ---- */
+    function attachDeleteCheckboxHandlers(){
+      document.querySelectorAll('#assigneeTableWrap .deleteChk').forEach(chk=>{
+        chk.addEventListener('change', ()=>{
+          const tr = chk.closest('tr');
+          if(!tr) return;
+          if(chk.checked){
+            tr.classList.add('to-delete');
+            const sel = tr.querySelector('select.assigneeSel'); if(sel) sel.value = "";
+            const time = tr.querySelector('input.timeEstimate'); if(time) time.value = "";
+          }else{
+            tr.classList.remove('to-delete');
+          }
+          updateButtonsState();
+        });
+      });
+    }
+
+    function appendToWebhookLog(label, status, body){
+      const raw = byId("respRaw");
+      raw.textContent += `${raw.textContent ? "\n\n" : ""}${label}\nHTTP ${status}\n\n${body}`;
+      if (SHOW_DEBUG) show(byId("respWrap"));
+      renderPrettyResponse(body, status);
+    }
+
+    function renderAssignResultCard(data){
+      const wrap = byId("assignResult");
+      let obj = data;
+      if (Array.isArray(data)) obj = data[data.length - 1] || {};
+
+      const pick = (o, keys) => keys.find(k => k in o && (typeof o[k] === 'string' || typeof o[k] === 'number'));
+      const aKey = pick(obj, ["Assignee","assignee","assigned_to","owner"]);
+      const cKey = pick(obj, ["Client","client","workspace"]);
+      const tKey = pick(obj, ["Task Type","taskType","type"]);
+      const lKey = pick(obj, ["Link","link","taskUrl","url","permalink"]);
+
+      const items = [];
+      if (aKey) items.push(`<li><strong>Assignee:</strong> ${escapeHtml(String(obj[aKey]))}</li>`);
+      if (cKey) items.push(`<li><strong>Client:</strong> ${escapeHtml(String(obj[cKey]))}</li>`);
+      if (tKey) items.push(`<li><strong>Task Type:</strong> ${escapeHtml(String(obj[tKey]))}</li>`);
+      if (lKey) {
+        const href = escapeHtml(String(obj[lKey]));
+        items.push(`<li><strong>Link:</strong> <a href="${href}" target="_blank" rel="noopener">${href}</a></li>`);
+      }
+
+      if (!items.length && obj && typeof obj === "object") {
+        Object.entries(obj).slice(0,10).forEach(([k,v])=>{
+          if (typeof v === 'string' || typeof v === 'number') {
+            const val = String(v);
+            items.push(
+              /https?:\/\//i.test(val)
+                ? `<li><strong>${escapeHtml(k)}:</strong> <a href="${escapeHtml(val)}" target="_blank" rel="noopener">${escapeHtml(val)}</a></li>`
+                : `<li><strong>${escapeHtml(k)}:</strong> ${escapeHtml(val)}</li>`
+            );
+          }
+        });
+      }
+
+      wrap.innerHTML = `<strong>Response 200</strong>${items.length ? `<ul style="margin:8px 0 0; padding-left:18px;">${items.join("")}</ul>` : ""}`;
+      show(wrap);
+    }
+
+    /* ---- Button state logic ---- */
+    function updateButtonsState(){
+      const rows = Array.from(document.querySelectorAll("#assigneeTableWrap tbody tr"));
+      const anyDelete = rows.some(tr => tr.classList.contains('to-delete'));
+      const assignBtn = byId("btnAssign");
+      const deleteBtn = byId("btnDelete");
+
+      let allFilledAndValid = true;
+      if(!anyDelete){
+        for(const tr of rows){
+          const sel = tr.querySelector("select.assigneeSel");
+          const timeInput = tr.querySelector("input.timeEstimate");
+          const hasAssignee = !!(sel && sel.value);
+          let timeOK = false;
+          if(timeInput){
+            const { minutes } = parseTimeEstimate(timeInput.value);
+            timeOK = minutes != null;
+          }
+          if(!(hasAssignee && timeOK)){ allFilledAndValid = false; break; }
+        }
+      }
+
+      deleteBtn.disabled = !anyDelete;
+      assignBtn.disabled = anyDelete || !allFilledAndValid;
+    }
+
+    /* ---- Low-level POST helpers for DELETE with fallbacks ---- */
+    async function postJSONWithFallback(url, data){
+      const payload = JSON.stringify(data);
+
+      // 1) Normal fetch with JSON (may be blocked by CORS/preflight)
+      try{
+        const r = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+          keepalive: true
+        });
+        return { ok: r.ok, status: r.status, text: await r.text().catch(()=> "") };
+      }catch(_){ /* fall through */ }
+
+      // 2) navigator.sendBeacon (no preflight). We can't read response.
+      try{
+        const blob = new Blob([payload], { type: "application/json" });
+        const ok = navigator.sendBeacon(url, blob);
+        if (ok) return { ok: true, status: 200, text: "" };
+      }catch(_){ /* fall through */ }
+
+      // 3) fetch no-cors as text/plain (opaque response counts as fire-and-forget)
+      try{
+        const r = await fetch(url, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=UTF-8" }, // simple header
+          body: payload,
+          keepalive: true
+        });
+        // opaque response -> treat as success
+        return { ok: true, status: 200, text: "" };
+      }catch(_){ /* fall through */ }
+
+      // 4) Hidden FORM POST (bypasses CORS entirely)
+      try{
+        const iframe = document.createElement("iframe");
+        iframe.name = "hidden_delete_iframe";
+        iframe.style.display = "none";
+        document.body.appendChild(iframe);
+
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = url;
+        form.target = "hidden_delete_iframe";
+        form.style.display = "none";
+
+        // send under 'payload' field; n8n can read the raw field value
+        const input = document.createElement("textarea");
+        input.name = "payload";
+        input.value = payload;
+        form.appendChild(input);
+
+        document.body.appendChild(form);
+        form.submit();
+
+        // clean up a bit later
+        setTimeout(() => { form.remove(); iframe.remove(); }, 2000);
+
+        return { ok: true, status: 200, text: "" };
+      }catch(err){
+        return { ok: false, status: 0, text: String(err) };
+      }
+    }
+
+    /* ---- DELETE handler: posts ALL checked IDs to DELETE_WEBHOOK_URL ---- */
+    async function handleDelete(){
+      const rows = Array.from(document.querySelectorAll("#assigneeTableWrap tbody tr.to-delete"));
+      hide(byId("assignResult"));
+      if (!rows.length){ setStatus("No subtasks are marked for deletion.", true); return; }
+
+      const items = rows.map(tr => ({
+        "ID": tr.dataset.id || "",
+        "Action": "delete",
+        "Client": tr.dataset.client || "",
+        "Task Type": tr.dataset.tasktype || "",
+        "Link": tr.dataset.link || ""
+      }));
+
+      const deleteBtn = byId("btnDelete");
+      deleteBtn.disabled = true;
+      setStatus("Deleting subtasks…");
+
+      const res = await postJSONWithFallback(DELETE_WEBHOOK_URL, items);
+
+      if (res.ok){
+        // remove deleted rows from UI
+        rows.forEach(tr => tr.remove());
+        setStatus("");
+        if (res.text){
+          try { renderAssignResultCard(JSON.parse(res.text)); }
+          catch {
+            const wrap = byId("assignResult");
+            wrap.innerHTML = `<strong>Response ${res.status || 200}</strong><div style="margin-top:6px;">${escapeHtml(res.text)}</div>`;
+            show(wrap);
+          }
+        } else {
+          const wrap = byId("assignResult");
+          wrap.innerHTML = `<strong>Response 200</strong><div style="margin-top:6px;">Delete request sent.</div>`;
+          show(wrap);
+        }
+        appendToWebhookLog("SUBTASK DELETE", res.status || 200, res.text || "(no body)");
+      }else{
+        setStatus("Network error while deleting.\n" + (res.text || "Failed to send request."), true);
+        appendToWebhookLog("SUBTASK DELETE (client error)", res.status || "?", res.text || "no message");
+      }
+
+      deleteBtn.disabled = false;
+      updateButtonsState();
+    }
+
+    async function handleAssign(){
+      const rows = Array.from(document.querySelectorAll("#assigneeTableWrap tbody tr"));
+      hide(byId("assignResult"));
+      if (!rows.length){ setStatus("No subtasks to assign.", true); return; }
+
+      const anyDelete = rows.some(tr => tr.classList.contains('to-delete'));
+      if (anyDelete){ setStatus("Some subtasks are marked for deletion. Click Delete, or uncheck them to enable Assign.", true); return; }
+
+      for (const tr of rows){
+        const sel = tr.querySelector("select.assigneeSel");
+        const timeInput = tr.querySelector("input.timeEstimate");
+        if (!sel || !sel.value){ setStatus("Please choose an assignee for every subtask.", true); return; }
+        const { minutes } = parseTimeEstimate(timeInput?.value || "");
+        if (minutes == null){ setStatus("Please enter a valid time estimate for every subtask.", true); return; }
+      }
+
+      const items = rows.map(tr => {
+        const sel = tr.querySelector("select.assigneeSel");
+        const timeStr = tr.querySelector("input.timeEstimate")?.value || "";
+        const { minutes, normalized } = parseTimeEstimate(timeStr);
+
+        let assignee = { id:"", name:"" };
+        try { assignee = JSON.parse(sel.value); } catch {}
+
+        const base = (lastWebhookObj && typeof lastWebhookObj === "object" && !Array.isArray(lastWebhookObj))
+                      ? JSON.parse(JSON.stringify(lastWebhookObj)) : {};
+
+        const item = {
+          ...base,
+          "ID": tr.dataset.id || "",
+          "Subtask": tr.dataset.name || "",
+          "Assignee": assignee.name || "",
+          "AssigneeId": assignee.id || "",
+          "Time Estimate": normalized ?? timeStr ?? "",
+          "TimeEstimateMinutes": minutes ?? null,
+          "Client": tr.dataset.client || "",
+          "Task Type": tr.dataset.tasktype || "",
+          "Link": tr.dataset.link || ""
+        };
+        if (Array.isArray(lastWebhookObj)) item._previousArray = lastWebhookObj;
+        if ((!lastWebhookObj || typeof lastWebhookObj !== "object") && lastWebhookText) item._previousRaw = lastWebhookText;
+        return item;
+      });
+
+      const assignBtn = byId("btnAssign");
+      assignBtn.disabled = true;
+      setStatus("Assigning the subtasks…");
+
+      try{
+        const r = await fetch(SUBTASK_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(items)
+        });
+        const body = await r.text();
+        setStatus("");
+
+        appendToWebhookLog("SUBTASK ASSIGN", r.status, body);
+
+        try{
+          const json = JSON.parse(body);
+          renderAssignResultCard(json);
+        }catch{
+          const wrap = byId("assignResult");
+          wrap.innerHTML = `<strong>Response ${r.status}</strong><div style="margin-top:6px;">${escapeHtml(body)}</div>`;
+          show(wrap);
+        }
+      }catch(err){
+        setStatus("Network error while assigning.\n" + String(err), true);
+        appendToWebhookLog("SUBTASK ASSIGN (client error)", "?", String(err));
+      }finally{
+        assignBtn.disabled = false;
+        updateButtonsState();
+      }
+    }
+
+    /* ---------- SUBMIT MAIN FORM ---------- */
+    async function submitForm(e){
+      e.preventDefault();
+      hide(byId("success")); hide(byId("respPretty")); hide(byId("respWrap"));
+      hideAssigneeSection(); hide(byId("assignResult"));
+
+      const rawSubmitter = byId("submitter").value;
+      const rawClient    = byId("client").value;
+      const rawTemplate  = byId("template").value;
+      const team         = byId("team").value;
+      const taskTitle    = (byId("taskTitle")?.value || "").trim();
+      if(!rawSubmitter || !rawClient || !rawTemplate || !team){
+        setStatus("Please choose submitter, team, client, and template.", true);
+        return;
+      }
+
+      const submitter = JSON.parse(rawSubmitter);
+      const client    = JSON.parse(rawClient);
+      const template  = JSON.parse(rawTemplate);
+
+      const editor = byId("descriptionEditor");
+      const htmlRaw  = editor.innerHTML || "";
+      const htmlSafe = sanitizeHtml(htmlRaw);
+      byId("description").value = htmlSafe;
+
+      const dueDateTime = byId("dueDate").value || "";
+
+      setStatus("Submitting ticket…");
+      try {
+        const r = await fetch(TICKET_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            submitterId: submitter.id,
+            submitterName: submitter.name,
+            team,
+            clientName: client.name,
+            clientListId: client.listId,
+            clientFolderId: client.folderId,
+            clientTicketTemplateId: client.ticketId,
+            clientUrl: client.url || "",
+            templateId: template.id,
+            templateName: template.name,
+            taskTitle: taskTitle || (template.name || ""),
+            dueDateTime,
+            descriptionHtml: htmlSafe,
+            descriptionHtmlRaw: htmlRaw,
+            attachments: attachments.map(a => ({ filename: a.name, type: a.type, size: a.size, dataUrl: a.dataUrl }))
+          })
+        });
+
+        const body = await r.text();
+        setStatus("");
+
+        byId("respRaw").textContent = `TASK CREATE\nHTTP ${r.status}\n\n${body}`;
+        if (SHOW_DEBUG) show(byId("respWrap"));
+        renderPrettyResponse(body, r.status);
+
+        if (r.ok) {
+          let obj = null; try { obj = JSON.parse(body); } catch {}
+          lastWebhookObj = obj ?? null;
+          lastWebhookText = body || "";
+          setSuccess("Task created successfully.");
+
+          const linkFromResp = (obj && (obj.link || obj.taskUrl || obj.url || obj.permalink))
+            ? String(obj.link || obj.taskUrl || obj.url || obj.permalink) : "";
+          lastHiddenContext = {
+            client: client.name || "",
+            taskType: template.name || "",
+            link: linkFromResp
+          };
+
+          const rows = extractSubtasksFromResponse(obj ?? {});
+          if (rows.length) {
+            renderAssigneeSection(rows);
+          } else {
+            try {
+              const json = obj ?? JSON.parse(body);
+              renderAssignResultCard(json);
+            } catch {
+              const wrap = byId("assignResult");
+              wrap.innerHTML = `<strong>Response ${r.status}</strong><div style="margin-top:6px;">${escapeHtml(body)}</div>`;
+              show(wrap);
+            }
+          }
+        } else {
+          setStatus(`There was a problem. HTTP ${r.status}`, true);
+        }
+      } catch (err) {
+        setStatus("Network error while submitting ticket.\n" + String(err), true);
+        byId("respRaw").textContent = String(err.stack || err);
+        if (SHOW_DEBUG) show(byId("respWrap"));
+      }
+    }
+
+    document.addEventListener('keydown', (e)=>{
+      const inAssigneeArea = e.target && e.target.closest && e.target.closest('#assigneeSection');
+      if (inAssigneeArea && e.key === 'Enter') {
+        e.preventDefault();
+      }
+    });
+
+    /* ---------- WIRE UP ---------- */
+    document.addEventListener("DOMContentLoaded", () => {
+      enhanceSelect(byId("team"));
+      enableForm(false);
+      byId("btnFetch").addEventListener("click", handleFetchNew);
+      byId("form").addEventListener("submit", submitForm);
+      byId("btnAssign").addEventListener("click", handleAssign);
+      byId("btnDelete").addEventListener("click", handleDelete);
+      byId("btnCloseModal").addEventListener("click", () => { const m=byId("imgModal"); m.style.display="none"; m.setAttribute("aria-hidden","true"); });
+      byId("imgModal").addEventListener("click", (e) => { if(e.target === byId("imgModal")) { const m=byId("imgModal"); m.style.display="none"; m.setAttribute("aria-hidden","true"); } });
+    });
+  </script>
+</body>
+</html>
